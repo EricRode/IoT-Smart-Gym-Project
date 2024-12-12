@@ -1,0 +1,56 @@
+services:
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mqtt/config:/mosquitto/config
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/log:/mosquitto/log
+
+  sensor-simulation:
+    build:
+      context: ./sensor-simulation
+    container_name: sensor_simulation
+    environment:
+      - MQTT_BROKER=mqtt_broker
+      - MQTT_USERNAME=smart-gym
+      - MQTT_PASSWORD=smartgym#2024
+    depends_on:
+      - mqtt
+
+  node-red:
+    build:
+      context: ./node-red
+    container_name: node_red
+    ports:
+      - "1880:1880"
+    volumes:
+      - ./node-red:/data
+    depends_on:
+      - mqtt
+
+  influxdb:
+    image: influxdb:2.4-alpine
+    container_name: influxdb
+    restart: always
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=se4iot_token
+      - DOCKER_INFLUXDB_INIT_ORG=se4iot
+      - DOCKER_INFLUXDB_INIT_BUCKET=smartgym
+      - DOCKER_INFLUXDB_INIT_USERNAME=smartgym
+      - DOCKER_INFLUXDB_INIT_PASSWORD=smartgym123
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb:/var/lib/influxdb2
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - influxdb

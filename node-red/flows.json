@@ -1,0 +1,23 @@
+
+[
+    {
+        "id": "1",
+        "type": "mqtt in",
+        "name": "Sensor Data",
+        "topic": "/gym/sensors",
+        "broker": "mqtt_broker",
+        "wires": [["2"]]
+    },
+    {
+        "id": "2",
+        "type": "switch",
+        "name": "Check Alerts",
+        "property": "payload",
+        "rules": [
+            { "t": "gt", "v": "10", "vt": "num", "property": "occupancy" },
+            { "t": "gt", "v": "30", "vt": "num", "property": "temperature" },
+            { "t": "neq", "v": "OK", "vt": "str", "property": "equipment_status" }
+        ],
+        "wires": [["3"], ["4"], ["5"]]
+    }
+]
