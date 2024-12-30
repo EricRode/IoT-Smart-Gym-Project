@@ -9,9 +9,9 @@ datasources:
     database: smartgym
     user: smartgym
     password: smartgym123
-    query_language: flux
     jsonData:
       httpMode: POST
       organization: se4iot
       defaultBucket: smartgym
       token: uMq4a5rC5cAhVmHjKssaxfTz4A_8z2vadtm2MktIdcJ90o-VnO9O_VHj_8OFCUUfSwYQqeWaPdiuGsuDpufngQ==
+      version: "Flux"  
