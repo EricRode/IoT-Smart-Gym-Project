@@ -1,0 +1,13 @@
+apiVersion: 1
+
+datasources:
+  - name: SmartGymSource
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: se4iot
+      defaultBucket: smartgym
+    secureJsonData:
+      token: uMq4a5rC5cAhVmHjKssaxfTz4A_8z2vadtm2MktIdcJ90o-VnO9O_VHj_8OFCUUfSwYQqeWaPdiuGsuDpufngQ==

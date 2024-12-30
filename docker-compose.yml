@@ -75,7 +75,6 @@ services:
     volumes:
       - ./grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/provisioning:/etc/grafana/provisioning/datasources
     depends_on:
       - influxdb
     networks:

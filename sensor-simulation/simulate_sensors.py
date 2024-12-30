@@ -1,69 +1,63 @@
 import paho.mqtt.client as mqtt
-import time
 import random
+import time
 import json
 import os
+from datetime import datetime
 
+# MQTT Configuration
 broker = os.getenv("MQTT_BROKER", "mqtt_broker")
 port = 1883
 username = os.getenv("MQTT_USERNAME", "smart-gym")
 password = os.getenv("MQTT_PASSWORD", "smartgym#2024")
 topic = "/gym/sensors"
 
-print(f"Connecting to MQTT Broker at {broker}:{port} with username '{username}' and password '{password}'")
-
 client = mqtt.Client()
 client.username_pw_set(username, password)
 
 def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to MQTT Broker!")
-    else:
-        print(f"Failed to connect, return code {rc}")
-
-def on_disconnect(client, userdata, rc):
-    print(f"Disconnected from MQTT Broker with return code {rc}")
-
-def on_publish(client, userdata, mid):
-    print(f"Message {mid} published.")
+    print("Connected to MQTT Broker" if rc == 0 else f"Failed to connect, code {rc}")
 
 client.on_connect = on_connect
-client.on_disconnect = on_disconnect
-client.on_publish = on_publish
-
-# Retry logic
-while True:
-    try:
-        print("Attempting to connect to the broker...")
-        client.connect(broker, port, keepalive=60)
-        print("Connection successful")
-        break
-    except ConnectionRefusedError as e:
-        print(f"Connection refused: {e}. Retrying in 5 seconds...")
-        time.sleep(5)
-    except Exception as e:
-        print(f"Unexpected error: {e}. Retrying in 5 seconds...")
-        time.sleep(5)
-
+client.connect(broker, port, keepalive=60)
 client.loop_start()
 
-def publish_data():
+# Simulation Function
+def simulate_data():
+    max_capacity = 50  # Max number of people in the gym
+    occupancy = random.randint(0, max_capacity)
+    equipment_count = 20  # Total gym equipment
+    equipment_in_use = random.randint(0, equipment_count)
+
     while True:
+        # Simulating various metrics
         data = {
-            "occupancy": random.randint(0, 15),
-            "temperature": round(random.uniform(18, 35), 1),
-            "equipment_status": "OK" if random.random() > 0.1 else "Malfunction"
+            "timestamp": datetime.now().isoformat(),
+            "air_quality": round(random.uniform(10, 100), 2),  # AQI value
+            "occupancy": occupancy + random.choice([-1, 1]),  # +1/-1 occupancy change
+            "temperature": round(random.uniform(18, 30), 1),  # in Celsius
+            "humidity": round(random.uniform(30, 70), 1),  # percentage
+            "noise_level": round(random.uniform(40, 90), 1),  # dB
+            "equipment_status": {
+                f"machine_{i}": random.choice(["OK", "In Use", "Needs Maintenance"])
+                for i in range(1, equipment_count + 1)
+            },
+            "energy_usage": round(random.uniform(500, 1500), 2),  # watts
+            "water_dispenser_usage": random.randint(0, 5),  # usage count
         }
+
+        # Publish to MQTT
         result = client.publish(topic, json.dumps(data))
-        status = result.rc
-        if status == 0:
+        if result.rc == 0:
             print(f"Published: {data}")
         else:
-            print(f"Failed to send message to topic {topic}")
-        time.sleep(5)
+            print("Failed to publish message")
 
+        time.sleep(5)  # Interval between readings
+
+# Run Simulation
 try:
-    publish_data()
+    simulate_data()
 except KeyboardInterrupt:
     print("Simulation stopped.")
 finally:
