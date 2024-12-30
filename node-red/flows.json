@@ -1,23 +1,146 @@
-
 [
+    {
+        "id": "08a91f436021d7da",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "cde89b5394368dd8",
+        "type": "mqtt-broker",
+        "name": "host.docker.internal:1883",
+        "broker": "host.docker.internal",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "b9b436f9507c8b3f",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": 8086,
+        "protocol": "http",
+        "database": "database",
+        "name": "InfluxDB",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://influxdb:8086",
+        "timeout": 10,
+        "rejectUnauthorized": true
+    },
     {
         "id": "1",
         "type": "mqtt in",
+        "z": "08a91f436021d7da",
         "name": "Sensor Data",
         "topic": "/gym/sensors",
-        "broker": "mqtt_broker",
-        "wires": [["2"]]
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "cde89b5394368dd8",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 170,
+        "y": 320,
+        "wires": [
+            [
+                "2",
+                "2b4cbc188b15a1cd",
+                "d0f7b84c905f28bf"
+            ]
+        ]
     },
     {
         "id": "2",
         "type": "switch",
+        "z": "08a91f436021d7da",
         "name": "Check Alerts",
         "property": "payload",
+        "propertyType": "msg",
         "rules": [
-            { "t": "gt", "v": "10", "vt": "num", "property": "occupancy" },
-            { "t": "gt", "v": "30", "vt": "num", "property": "temperature" },
-            { "t": "neq", "v": "OK", "vt": "str", "property": "equipment_status" }
+            {
+                "t": "gt",
+                "v": "10",
+                "vt": "num"
+            },
+            {
+                "t": "gt",
+                "v": "30",
+                "vt": "num"
+            },
+            {
+                "t": "neq",
+                "v": "OK",
+                "vt": "str"
+            }
         ],
-        "wires": [["3"], ["4"], ["5"]]
+        "repair": false,
+        "outputs": 3,
+        "x": 690,
+        "y": 300,
+        "wires": [
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "2b4cbc188b15a1cd",
+        "type": "debug",
+        "z": "08a91f436021d7da",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 520,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "d0f7b84c905f28bf",
+        "type": "influxdb out",
+        "z": "08a91f436021d7da",
+        "influxdb": "b9b436f9507c8b3f",
+        "name": "",
+        "measurement": "co2Concentration",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "se4iot",
+        "bucket": "smartgym",
+        "x": 720,
+        "y": 420,
+        "wires": []
     }
 ]
