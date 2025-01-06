@@ -96,34 +96,17 @@
         "y": 280,
         "wires": [
             [
-                "1855d66927b37893"
+                "1855d66927b37893",
+                "b64f7c4593908e99"
             ]
         ]
-    },
-    {
-        "id": "d0f7b84c905f28bf",
-        "type": "influxdb out",
-        "z": "08a91f436021d7da",
-        "influxdb": "b9b436f9507c8b3f",
-        "name": "Save to influxDB",
-        "measurement": "",
-        "precision": "",
-        "retentionPolicy": "",
-        "database": "database",
-        "precisionV18FluxV20": "ms",
-        "retentionPolicyV18Flux": "",
-        "org": "se4iot",
-        "bucket": "smartgym",
-        "x": 750,
-        "y": 280,
-        "wires": []
     },
     {
         "id": "1855d66927b37893",
         "type": "function",
         "z": "08a91f436021d7da",
         "name": "Transform data for InfluxDB",
-        "func": "// Access MQTT topic\nlet topic = msg.topic;\nconst data = msg.payload;\n\n// Ensure the topic is valid and in the expected format\nif (!topic || topic.split(\"/\").length < 4) {\n    node.error(\"Invalid topic format. Expected: /<prefix>/<gym>/<sensorType>\");\n    return null;\n}\n\n// Split topic into components\nlet topicParts = topic.split(\"/\");\nlet gymAbbreviation = topicParts[2];  // Gym abbreviation (e.g., \"MBS\")\nlet sensorType = topicParts[3];       // Sensor type (e.g., \"occupancy\")\n\n// Ensure payload contains necessary properties\nif (!msg.payload || typeof msg.payload.value === 'undefined' || !msg.payload.timestamp || !msg.payload.sensor_id) {\n    node.error(\"Payload missing required properties: value, timestamp, or sensor_id.\");\n    return null;\n}\n\n         \n/*msg.payload = [\n    {\n       // \"timestamp\": new Date(data.timestamp).getTime() * 1e6,\n        [sensorType]: parseFloat(data.value)\n    },\n    {\n        \"gym\": gymAbbreviation,\n        \"sensor_type\": sensorType,\n        \"sensor_id\": data.sensor_id\n    }\n]*/\n\nmsg.payload = [\n    {\n        value: parseFloat(msg.payload.value), // field\n        latitude: parseFloat(msg.payload.coordinates[0]), // field\n        longitude: parseFloat(msg.payload.coordinates[1]) // field\n    },\n    {\n        gym: msg.payload.city,\n        sensor_type: sensorType,\n        sensor_id: data.sensor_id\n    },\n    {\n        timestamp: msg.payload.time || Date.now()\n    }\n];\n\nmsg.measurement= gymAbbreviation;\n\nreturn msg;\n\n",
+        "func": "// Access MQTT topic\nlet topic = msg.topic;\nconst data = msg.payload;\n\n// Ensure the topic is valid and in the expected format\nif (!topic || topic.split(\"/\").length < 4) {\n    node.error(\"Invalid topic format. Expected: /<prefix>/<gym>/<sensorType>\");\n    return null;\n}\n\n// Split topic into components\nlet topicParts = topic.split(\"/\");\nlet gymAbbreviation = topicParts[2];  // Gym abbreviation (e.g., \"MBS\")\nlet sensorType = topicParts[3];       // Sensor type (e.g., \"occupancy\")\n\n// Ensure payload contains necessary properties\nif (!msg.payload || typeof msg.payload.value === 'undefined' || !msg.payload.timestamp || !msg.payload.sensor_id) {\n    node.error(\"Payload missing required properties: value, timestamp, or sensor_id.\");\n    return null;\n}\n\n         \n/*msg.payload = [\n    {\n       // \"timestamp\": new Date(data.timestamp).getTime() * 1e6,\n        [sensorType]: parseFloat(data.value)\n    },\n    {\n        \"gym\": gymAbbreviation,\n        \"sensor_type\": sensorType,\n        \"sensor_id\": data.sensor_id\n    }\n]*/\n\n/*msg.payload = [\n    {\n        value: parseFloat(msg.payload.value), // field\n    },\n    {\n        //gym: msg.payload.city,\n        sensor_type: sensorType,\n        sensor_id: data.sensor_id,\n    },\n    {\n        timestamp: msg.payload.time || Date.now(),\n        latitude: parseFloat(msg.payload.coordinates[0]), \n        longitude: parseFloat(msg.payload.coordinates[1]) \n    }\n];\n*/\n\nmsg.payload = [\n    {\n        measurement: gymAbbreviation,\n        tags: {\n            \"sensor_type\": sensorType,\n            \"sensor_id\": data.sensor_id,\n            \"location\": data.location,\n            \"latitude\": data.coordinates[0],\n             \"longitude\": data.coordinates[1],\n        },\n        fields: {\n            value: parseFloat(msg.payload.value),\n        },\n        timestamp: msg.payload.time || Date.now()\n    }\n]\n//msg.measurement= gymAbbreviation;\n\nreturn msg;\n\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -134,8 +117,7 @@
         "y": 280,
         "wires": [
             [
-                "afdfd6c3304adcd2",
-                "d0f7b84c905f28bf"
+                "a44186e405dae92c"
             ]
         ]
     },
@@ -258,36 +240,88 @@
         ]
     },
     {
-        "id": "afdfd6c3304adcd2",
-        "type": "debug",
+        "id": "a44186e405dae92c",
+        "type": "influxdb batch",
         "z": "08a91f436021d7da",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "tags",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 740,
-        "y": 360,
+        "influxdb": "b9b436f9507c8b3f",
+        "precision": "",
+        "retentionPolicy": "",
+        "name": "Save data to influx",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "se4iot",
+        "bucket": "smartgym",
+        "x": 990,
+        "y": 280,
         "wires": []
     },
     {
-        "id": "f13e25fe6a895dfe",
-        "type": "debug",
+        "id": "e913e69f04b21679",
+        "type": "influxdb in",
         "z": "08a91f436021d7da",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 450,
-        "y": 520,
-        "wires": []
+        "influxdb": "b9b436f9507c8b3f",
+        "name": "Query latest sensor data",
+        "query": "from(bucket: \"smartgym\")\n  |> range(start: -1m) // Last 1 minute\n  |> filter(fn: (r) => r.sensor_type == \"no2_level\" or r.sensor_type == \"co2_level\" or r.sensor_type == \"humidity\" or r.sensor_type == \"pm2.5\" or r.sensor_type == \"pm10\")\n  |> group(columns: [\"_measurement\", \"sensor_id\", \"sensor_type\"]) // Group by sensor ID and type\n  |> last()",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "se4iot",
+        "x": 470,
+        "y": 460,
+        "wires": [
+            [
+                "0daa7626a1e2d4f2"
+            ]
+        ]
+    },
+    {
+        "id": "15346ae780fb9b73",
+        "type": "inject",
+        "z": "08a91f436021d7da",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 110,
+        "y": 460,
+        "wires": [
+            [
+                "e913e69f04b21679"
+            ]
+        ]
+    },
+    {
+        "id": "0daa7626a1e2d4f2",
+        "type": "function",
+        "z": "08a91f436021d7da",
+        "name": "Calculate AQI",
+        "func": "// AQI Calculation Helper Function\nfunction calculateAQI(C, breakpoints) {\n    for (let i = 0; i < breakpoints.length; i++) {\n        let bp = breakpoints[i];\n        if (C >= bp.C_Lo && C <= bp.C_Hi) {\n            return ((bp.I_Hi - bp.I_Lo) / (bp.C_Hi - bp.C_Lo)) * (C - bp.C_Lo) + bp.I_Lo;\n        }\n    }\n    return null; // Return null if C is out of range\n}\n\n// Breakpoints for AQI Calculation\nconst co2Breakpoints = [\n    { C_Lo: 0, C_Hi: 400, I_Lo: 0, I_Hi: 50 },\n    { C_Lo: 401, C_Hi: 1000, I_Lo: 51, I_Hi: 100 },\n    { C_Lo: 1001, C_Hi: 1500, I_Lo: 101, I_Hi: 150 },\n    { C_Lo: 1501, C_Hi: 2000, I_Lo: 151, I_Hi: 200 }\n];\nconst no2Breakpoints = [\n    { C_Lo: 0, C_Hi: 53, I_Lo: 0, I_Hi: 50 },\n    { C_Lo: 54, C_Hi: 100, I_Lo: 51, I_Hi: 100 },\n    { C_Lo: 101, C_Hi: 360, I_Lo: 101, I_Hi: 150 },\n    { C_Lo: 361, C_Hi: 650, I_Lo: 151, I_Hi: 200 }\n];\nconst pm25Breakpoints = [\n    { C_Lo: 0, C_Hi: 12.0, I_Lo: 0, I_Hi: 50 },\n    { C_Lo: 12.1, C_Hi: 35.4, I_Lo: 51, I_Hi: 100 },\n    { C_Lo: 35.5, C_Hi: 55.4, I_Lo: 101, I_Hi: 150 },\n    { C_Lo: 55.5, C_Hi: 150.4, I_Lo: 151, I_Hi: 200 },\n    { C_Lo: 150.5, C_Hi: 250.4, I_Lo: 201, I_Hi: 300 }\n];\nconst pm10Breakpoints = [\n    { C_Lo: 0, C_Hi: 54, I_Lo: 0, I_Hi: 50 },\n    { C_Lo: 55, C_Hi: 154, I_Lo: 51, I_Hi: 100 },\n    { C_Lo: 155, C_Hi: 254, I_Lo: 101, I_Hi: 150 },\n    { C_Lo: 255, C_Hi: 354, I_Lo: 151, I_Hi: 200 },\n    { C_Lo: 355, C_Hi: 424, I_Lo: 201, I_Hi: 300 }\n];\nconst humidityBreakpoints = [\n    { C_Lo: 30, C_Hi: 50, I_Lo: 0, I_Hi: 50 },\n    { C_Lo: 51, C_Hi: 70, I_Lo: 51, I_Hi: 100 },\n    { C_Lo: 71, C_Hi: 80, I_Lo: 101, I_Hi: 150 },\n    { C_Lo: 81, C_Hi: 100, I_Lo: 151, I_Hi: 200 }\n];\n\n// Parse InfluxDB Data\nlet influxData = msg.payload;\nlet gyms = {};\n\n// Group data by gym location\ninfluxData.forEach(entry => {\n    let gym = entry._measurement;\n    let sensorType = entry.sensor_type;\n    let value = entry._value;\n\n    if (!gyms[gym]) {\n        gyms[gym] = { co2: [], no2: [], pm25: [], pm10: [], humidity: [] };\n    }\n\n    gyms[gym][sensorType]?.push(value);\n});\n\n// Prepare AQI Calculations\nlet payload = [];\nfor (let gym in gyms) {\n    let co2Avg = gyms[gym].co2.reduce((a, b) => a + b, 0) / (gyms[gym].co2.length || 1);\n    let no2Avg = gyms[gym].no2.reduce((a, b) => a + b, 0) / (gyms[gym].no2.length || 1);\n    let pm25Avg = gyms[gym].pm25.reduce((a, b) => a + b, 0) / (gyms[gym].pm25.length || 1);\n    let pm10Avg = gyms[gym].pm10.reduce((a, b) => a + b, 0) / (gyms[gym].pm10.length || 1);\n    let humidityAvg = gyms[gym].humidity.reduce((a, b) => a + b, 0) / (gyms[gym].humidity.length || 1);\n\n    let co2AQI = calculateAQI(co2Avg, co2Breakpoints) || 0;\n    let no2AQI = calculateAQI(no2Avg, no2Breakpoints) || 0;\n    let pm25AQI = calculateAQI(pm25Avg, pm25Breakpoints) || 0;\n    let pm10AQI = calculateAQI(pm10Avg, pm10Breakpoints) || 0;\n    let humidityAQI = (calculateAQI(humidityAvg, humidityBreakpoints) || 0) * 0.2;\n\n    let overallAQI = Math.max(co2AQI, no2AQI, pm25AQI, pm10AQI, humidityAQI);\n\n    // Format data for InfluxDB\n    payload.push({\n        measurement: gym,\n        tags: {\n            \"sensor_type\": \"AQI\",\n            \"sensor_id\": \"aggregated_value\"\n        },\n        fields: {\n            value: Math.round(overallAQI),\n        },\n        timestamp: Date.now()\n    });\n}\n\n// Output the formatted payload\nmsg.payload = payload;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 720,
+        "y": 460,
+        "wires": [
+            [
+                "a44186e405dae92c"
+            ]
+        ]
     }
 ]

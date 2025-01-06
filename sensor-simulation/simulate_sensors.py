@@ -137,13 +137,23 @@ def get_no2_level(occupancy):
     base_no2 = 20  # Basiswert für NO2 (ppb)
     return round(base_no2 + (occupancy * random.uniform(0.2, 0.5)), 2)
 
+def get_pm25_level(occupancy):
+    """PM2.5 value based on occupancy."""
+    base_pm25 = 5  # Average outdoor PM2.5 level in µg/m³
+    return round(base_pm25 + (occupancy * random.uniform(0.5, 1.0)), 2)
+
+def get_pm10_level(occupancy):
+    """PM10 value based on occupancy."""
+    base_pm10 = 10  # Average outdoor PM10 level in µg/m³
+    return round(base_pm10 + (occupancy * random.uniform(1.0, 2.0)), 2)
+
+# Update the sensor simulation
 def simulate_data():
     simulated_time = datetime.now() if not TIME_ACCELERATED_MODE else datetime(2022, 1, 1, 0, 0, 0)
 
     while True:
-        # Simulierte Stunde für beschleunigten Modus oder Echtzeit
         if TIME_ACCELERATED_MODE:
-            simulated_time += timedelta(seconds=1)  # 1 Sekunde = 1 Minute
+            simulated_time += timedelta(seconds=1)  # 1 second = 1 minute
             simulated_hour = simulated_time.hour
         else:
             simulated_hour = datetime.now().hour
@@ -154,7 +164,7 @@ def simulate_data():
 
             for sensor_type, sensors in location["sensors"].items():
                 for sensor_id in sensors:
-                    # Sensordaten basierend auf dem Typ generieren
+                    # Generate sensor data based on type
                     value = None
                     if sensor_type == "occupancy":
                         value = occupancy
@@ -168,17 +178,19 @@ def simulate_data():
                         value = get_no2_level(occupancy)
                     elif sensor_type == "noise_level":
                         value = round(random.uniform(40, 90), 1)
-                    elif sensor_type == "energy_usage":
-                        value = round(random.uniform(500, 1500), 2)
+                    elif sensor_type == "pm2.5":
+                        value = get_pm25_level(occupancy)
+                    elif sensor_type == "pm10":
+                        value = get_pm10_level(occupancy)
 
-                    # Daten für jeden Sensor veröffentlichen
+                    # Publish data for each sensor
                     if value is not None:
                         topic = f"/smartgym/{abbreviation}/{sensor_type}"
                         payload = {
                             "timestamp": simulated_time.isoformat(),
                             "location": location["name"],
                             "coordinates": location["coordinates"],
-                            "sensor_id": sensor_id,  # Sensor-ID hinzufügen
+                            "sensor_id": sensor_id,
                             "value": value,
                         }
                         result = client.publish(topic, json.dumps(payload))
