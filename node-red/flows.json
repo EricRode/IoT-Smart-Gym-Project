@@ -54,84 +54,59 @@
         "rejectUnauthorized": true
     },
     {
+        "id": "de4cdb1d8fe2dfb9",
+        "type": "telegram bot",
+        "botname": "SmartGym_LAquila",
+        "usernames": "",
+        "chatids": "-4736416351",
+        "baseapiurl": "",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "addressfamily": "",
+        "pollinterval": 300,
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": 6667,
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbotport": 8443,
+        "publicbotport": 8443,
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
         "id": "1",
         "type": "mqtt in",
         "z": "08a91f436021d7da",
-        "name": "Sensor Data",
-        "topic": "/gym/sensors",
+        "name": "incoming mqtt messages",
+        "topic": "#",
         "qos": "2",
         "datatype": "auto-detect",
         "broker": "cde89b5394368dd8",
         "nl": false,
         "rap": false,
         "inputs": 0,
-        "x": 170,
-        "y": 320,
+        "x": 150,
+        "y": 280,
         "wires": [
             [
-                "2",
-                "2b4cbc188b15a1cd",
-                "d0f7b84c905f28bf"
+                "1855d66927b37893"
             ]
         ]
-    },
-    {
-        "id": "2",
-        "type": "switch",
-        "z": "08a91f436021d7da",
-        "name": "Check Alerts",
-        "property": "payload",
-        "propertyType": "msg",
-        "rules": [
-            {
-                "t": "gt",
-                "v": "10",
-                "vt": "num"
-            },
-            {
-                "t": "gt",
-                "v": "30",
-                "vt": "num"
-            },
-            {
-                "t": "neq",
-                "v": "OK",
-                "vt": "str"
-            }
-        ],
-        "repair": false,
-        "outputs": 3,
-        "x": 690,
-        "y": 300,
-        "wires": [
-            [],
-            [],
-            []
-        ]
-    },
-    {
-        "id": "2b4cbc188b15a1cd",
-        "type": "debug",
-        "z": "08a91f436021d7da",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "false",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 520,
-        "y": 160,
-        "wires": []
     },
     {
         "id": "d0f7b84c905f28bf",
         "type": "influxdb out",
         "z": "08a91f436021d7da",
         "influxdb": "b9b436f9507c8b3f",
-        "name": "",
-        "measurement": "co2Concentration",
+        "name": "Save to influxDB",
+        "measurement": "",
         "precision": "",
         "retentionPolicy": "",
         "database": "database",
@@ -139,8 +114,180 @@
         "retentionPolicyV18Flux": "",
         "org": "se4iot",
         "bucket": "smartgym",
-        "x": 720,
-        "y": 420,
+        "x": 750,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "1855d66927b37893",
+        "type": "function",
+        "z": "08a91f436021d7da",
+        "name": "Transform data for InfluxDB",
+        "func": "// Access MQTT topic\nlet topic = msg.topic;\nconst data = msg.payload;\n\n// Ensure the topic is valid and in the expected format\nif (!topic || topic.split(\"/\").length < 4) {\n    node.error(\"Invalid topic format. Expected: /<prefix>/<gym>/<sensorType>\");\n    return null;\n}\n\n// Split topic into components\nlet topicParts = topic.split(\"/\");\nlet gymAbbreviation = topicParts[2];  // Gym abbreviation (e.g., \"MBS\")\nlet sensorType = topicParts[3];       // Sensor type (e.g., \"occupancy\")\n\n// Ensure payload contains necessary properties\nif (!msg.payload || typeof msg.payload.value === 'undefined' || !msg.payload.timestamp || !msg.payload.sensor_id) {\n    node.error(\"Payload missing required properties: value, timestamp, or sensor_id.\");\n    return null;\n}\n\n         \n/*msg.payload = [\n    {\n       // \"timestamp\": new Date(data.timestamp).getTime() * 1e6,\n        [sensorType]: parseFloat(data.value)\n    },\n    {\n        \"gym\": gymAbbreviation,\n        \"sensor_type\": sensorType,\n        \"sensor_id\": data.sensor_id\n    }\n]*/\n\nmsg.payload = [\n    {\n        value: parseFloat(msg.payload.value), // field\n        latitude: parseFloat(msg.payload.coordinates[0]), // field\n        longitude: parseFloat(msg.payload.coordinates[1]) // field\n    },\n    {\n        gym: msg.payload.city,\n        sensor_type: sensorType,\n        sensor_id: data.sensor_id\n    },\n    {\n        timestamp: msg.payload.time || Date.now()\n    }\n];\n\nmsg.measurement= gymAbbreviation;\n\nreturn msg;\n\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 280,
+        "wires": [
+            [
+                "afdfd6c3304adcd2",
+                "d0f7b84c905f28bf"
+            ]
+        ]
+    },
+    {
+        "id": "2fcc96ab6e685399",
+        "type": "function",
+        "z": "08a91f436021d7da",
+        "name": "set global thresholds",
+        "func": "global.set(\"thresholds\", {\n   co2_level: parseInt(env.get(\"CO2_THRESHOLD\"), 10) || 1000,\n    no2_level: parseInt(env.get(\"NO2_THRESHOLD\"), 10) || 50,\n    noise_level: parseInt(env.get(\"NOISE_THRESHOLD\"), 10) || 80,\n});\n\nglobal.set(\"configs\", {\n    telegram_admin_group_chat_id: parseInt(env.get(\"TELEGRAM_ADMIN_GROUP_CHAT_ID\"), 10) || -4736416351,\n    telegram_user_group_chat_id: parseInt(env.get(\"TELEGRAM_USER_GROUP_CHAT_ID\"), 10) || -4781056736\n});\n\nmsg.payload = global.get(\"thresholds\");\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "7d8d492ca7106f48",
+        "type": "inject",
+        "z": "08a91f436021d7da",
+        "name": "Run on startup",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "Initial thresholds set",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 80,
+        "wires": [
+            [
+                "2fcc96ab6e685399"
+            ]
+        ]
+    },
+    {
+        "id": "b64f7c4593908e99",
+        "type": "function",
+        "z": "08a91f436021d7da",
+        "name": "Analyze data for thresholds",
+        "func": "// Retrieve the thresholds from the global context\nconst thresholds = global.get(\"thresholds\") || {};\nconst configs = global.get(\"configs\") || {};\n\n// Access MQTT topic\nlet topic = msg.topic;\n\n// Ensure the topic is valid and in the expected format\nif (!topic || !topic.includes(\"/\")) {\n    node.error(\"Invalid topic format. Expected: /<gym>/<sensorType>\");\n    return null;\n}\n\n// Split topic into gym and sensor type\nlet topicParts = topic.split(\"/\");\nlet gymAbbreviation = topicParts[1];  // Gym abbreviation (e.g., \"MBS\")\nlet sensorType = topicParts[2];       // Sensor type (e.g., \"co2_level\", \"noise_level\")\n\n// Validate the sensor type and check if it's monitored\nif (!thresholds.hasOwnProperty(sensorType)) {\n    node.warn(`Sensor type \"${sensorType}\" is not monitored.`);\n    return null;\n}\n\n// Extract the sensor value\nlet sensorValue = parseFloat(msg.payload.value);\nif (isNaN(sensorValue)) {\n    node.error(\"Invalid sensor value. Expected a numeric value.\");\n    return null;\n}\n\n// Check if the sensor value exceeds the threshold\nlet threshold = thresholds[sensorType];\nif (sensorValue > threshold) {\n    \n    // Format the message to notify about the violation\n    let notificationMessage = msg.payload = `\nDomain: \"Smart Gym Monitoring.\"\nSensor: \"${sensorType} Sensor.\"\nLocation: \"Gym: ${gymAbbreviation}.\"\nCondition: \"Exceeds ${sensorType} threshold: ${sensorValue} (Threshold: ${threshold}).\"\n`;\n\n    // Send the message to the admin group chat\n    msg.payload = {\n        chatId: configs.telegram_user_group_chat_id,\n        type: \"message\",\n        content: notificationMessage\n    };\n\n    // Return the notification message\n    return msg;\n} else {\n    // No threshold violation; do nothing\n    return null;\n}",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 460,
+        "y": 340,
+        "wires": [
+            [
+                "6412f99e6babfe83"
+            ]
+        ]
+    },
+    {
+        "id": "adf59206d1e223d8",
+        "type": "function",
+        "z": "08a91f436021d7da",
+        "name": "get or set thresholds",
+        "func": "let resultMessage = \"\"; \nconst chatId = msg.payload.chatId;\n\ntry {\n    // Attempt to parse the payload\n    const parts = msg.payload.content.split(\" \");\n    const command = parts[0];\n\n    // Handle the /set_threshold command\n    if (command === \"/set_threshold\") {\n        const sensor = parts[1];\n        const newThreshold = parseInt(parts[2], 10);\n\n        if (sensor && !isNaN(newThreshold)) {\n            // Retrieve existing thresholds or initialize an empty object\n            let thresholds = global.get(\"thresholds\") || {};\n\n            // Update the threshold for the specified sensor\n            thresholds[sensor] = newThreshold;\n            global.set(\"thresholds\", thresholds);\n\n            // Create a success message\n            resultMessage = `Threshold for ${sensor} updated to ${newThreshold}`;\n        } else {\n            resultMessage = \"Invalid format for /set_threshold. Use: /set_threshold <sensor> <value>\";\n        }\n    }\n    // Handle the /get_thresholds command\n    else if (command === \"/get_thresholds\") {\n        const thresholds = global.get(\"thresholds\") || {};\n        if (Object.keys(thresholds).length > 0) {\n            resultMessage = `Current thresholds: ${JSON.stringify(thresholds, null, 2)}`;\n        } else {\n            resultMessage = \"No thresholds set yet.\";\n        }\n    }\n    // Handle invalid commands\n    else {\n        resultMessage = `Invalid command. Valid commands are:\n        - /set_threshold <sensor> <value>: Set a threshold for a sensor\n        - /get_thresholds: Get the list of current thresholds`;\n    }\n} catch (error) {\n    // Handle unexpected errors during parsing or processing\n    node.error(\"Error processing the command: \" + error.message);\n    resultMessage = \"An error occurred while processing the command. Please check your input.\";\n}\n\nmsg.payload = {};\n\nmsg.payload = {\n        chatId: chatId,\n        type: \"message\",\n        content: resultMessage\n    };\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 160,
+        "wires": [
+            [
+                "6412f99e6babfe83"
+            ]
+        ]
+    },
+    {
+        "id": "6412f99e6babfe83",
+        "type": "telegram sender",
+        "z": "08a91f436021d7da",
+        "name": "Send to admin group",
+        "bot": "de4cdb1d8fe2dfb9",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 820,
+        "y": 160,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b4f1c6b80e09274e",
+        "type": "telegram receiver",
+        "z": "08a91f436021d7da",
+        "name": "",
+        "bot": "de4cdb1d8fe2dfb9",
+        "saveDataDir": "",
+        "filterCommands": false,
+        "x": 120,
+        "y": 160,
+        "wires": [
+            [
+                "adf59206d1e223d8"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "afdfd6c3304adcd2",
+        "type": "debug",
+        "z": "08a91f436021d7da",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "tags",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 740,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "f13e25fe6a895dfe",
+        "type": "debug",
+        "z": "08a91f436021d7da",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 450,
+        "y": 520,
         "wires": []
     }
 ]

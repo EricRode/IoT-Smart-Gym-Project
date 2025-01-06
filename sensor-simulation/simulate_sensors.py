@@ -3,15 +3,13 @@ import random
 import time
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# MQTT Configuration
+# MQTT Konfiguration
 broker = os.getenv("MQTT_BROKER", "mqtt_broker")
 port = 1883
 username = os.getenv("MQTT_USERNAME", "smart-gym")
 password = os.getenv("MQTT_PASSWORD", "smartgym#2024")
-topic = "/gym/sensors"
-
 client = mqtt.Client()
 client.username_pw_set(username, password)
 
@@ -22,44 +20,180 @@ client.on_connect = on_connect
 client.connect(broker, port, keepalive=60)
 client.loop_start()
 
-# Simulation Function
+# Gym Standorte mit Sensorenanzahl
+mcfit_locations = [
+    {
+        "name": "McFIT Berlin-Stadtmitte",
+        "abbreviation": "MBS",
+        "coordinates": [52.5101, 13.3911],
+        "sensor_counts": {
+            "occupancy": 2,
+            "temperature": 3,
+            "humidity": 1,
+            "co2_level": 2,
+            "no2_level": 1,
+            "noise_level": 2,
+            "energy_usage": 1,
+        }
+    },
+    {
+        "name": "McFIT Berlin-Adlershof",
+        "abbreviation": "MBA",
+        "coordinates": [52.4368, 13.5341],
+        "sensor_counts": {
+            "occupancy": 3,
+            "temperature": 2,
+            "humidity": 2,
+            "co2_level": 3,
+            "no2_level": 2,
+            "noise_level": 3,
+            "energy_usage": 1,
+        }
+    },
+    {
+        "name": "McFIT Berlin-Lichterfelde",
+        "abbreviation": "MBL",
+        "coordinates": [52.4333, 13.2944],
+        "sensor_counts": {
+            "occupancy": 2,
+            "temperature": 1,
+            "humidity": 1,
+            "co2_level": 1,
+            "no2_level": 1,
+            "noise_level": 1,
+            "energy_usage": 2,
+        }
+    },
+    {
+        "name": "McFIT Berlin-Lichtenberg",
+        "abbreviation": "MBLN",
+        "coordinates": [52.5144, 13.4906],
+        "sensor_counts": {
+            "occupancy": 4,
+            "temperature": 3,
+            "humidity": 2,
+            "co2_level": 3,
+            "no2_level": 2,
+            "noise_level": 2,
+            "energy_usage": 1,
+        }
+    },
+    {
+        "name": "McFIT Berlin-Charlottenburg",
+        "abbreviation": "MBC",
+        "coordinates": [52.5036, 13.3415],
+        "sensor_counts": {
+            "occupancy": 1,
+            "temperature": 2,
+            "humidity": 2,
+            "co2_level": 2,
+            "no2_level": 1,
+            "noise_level": 3,
+            "energy_usage": 2,
+        }
+    },
+]
+
+# Eindeutige IDs für alle Sensoren erstellen
+for location in mcfit_locations:
+    abbreviation = location["abbreviation"]
+    location["sensors"] = {}
+    for sensor_type, count in location["sensor_counts"].items():
+        location["sensors"][sensor_type] = [
+            f"sensor_{abbreviation}_{sensor_type}_{i+1}" for i in range(count)
+        ]
+
+# Beschleunigter Modus für die Simulation
+TIME_ACCELERATED_MODE = True  # Setze auf False für Echtzeitsimulation
+SCALING_FACTOR = 5  # Skaliere die Belegung auf größere Werte
+
+def get_time_based_occupancy(simulated_hour):
+    """Belegung basierend auf der simulierten Zeit berechnen."""
+    base_occupancy = 0
+    fluctuation = random.randint(-5, 5)  # Kleine Schwankung um den Basiswert
+    
+    if 6 <= simulated_hour < 9:  # Morgenrush
+        base_occupancy = 40
+    elif 9 <= simulated_hour < 12:  # Vormittag
+        base_occupancy = 25
+    elif 12 <= simulated_hour < 15:  # Früher Nachmittag
+        base_occupancy = 10
+    elif 15 <= simulated_hour < 20:  # Abendrush
+        base_occupancy = 40
+    elif 20 <= simulated_hour < 24:  # Später Abend
+        base_occupancy = 20
+    else:  # Nacht (00:00 - 06:00)
+        base_occupancy = 0
+
+    return max(0, (base_occupancy + fluctuation) * SCALING_FACTOR)
+
+def get_co2_level(occupancy):
+    """CO2-Wert basierend auf der Belegung simulieren."""
+    base_co2 = 400  # Durchschnittlicher CO2-Wert im Freien (ppm)
+    return round(base_co2 + (occupancy * random.uniform(5, 10)), 2)
+
+def get_no2_level(occupancy):
+    """NO2-Wert basierend auf der Belegung simulieren."""
+    base_no2 = 20  # Basiswert für NO2 (ppb)
+    return round(base_no2 + (occupancy * random.uniform(0.2, 0.5)), 2)
+
 def simulate_data():
-    max_capacity = 50  # Max number of people in the gym
-    occupancy = random.randint(0, max_capacity)
-    equipment_count = 20  # Total gym equipment
-    equipment_in_use = random.randint(0, equipment_count)
+    simulated_time = datetime.now() if not TIME_ACCELERATED_MODE else datetime(2022, 1, 1, 0, 0, 0)
 
     while True:
-        # Simulating various metrics
-        data = {
-            "timestamp": datetime.now().isoformat(),
-            "air_quality": round(random.uniform(10, 100), 2),  # AQI value
-            "occupancy": occupancy + random.choice([-1, 1]),  # +1/-1 occupancy change
-            "temperature": round(random.uniform(18, 30), 1),  # in Celsius
-            "humidity": round(random.uniform(30, 70), 1),  # percentage
-            "noise_level": round(random.uniform(40, 90), 1),  # dB
-            "equipment_status": {
-                f"machine_{i}": random.choice(["OK", "In Use", "Needs Maintenance"])
-                for i in range(1, equipment_count + 1)
-            },
-            "energy_usage": round(random.uniform(500, 1500), 2),  # watts
-            "water_dispenser_usage": random.randint(0, 5),  # usage count
-        }
-
-        # Publish to MQTT
-        result = client.publish(topic, json.dumps(data))
-        if result.rc == 0:
-            print(f"Published: {data}")
+        # Simulierte Stunde für beschleunigten Modus oder Echtzeit
+        if TIME_ACCELERATED_MODE:
+            simulated_time += timedelta(seconds=1)  # 1 Sekunde = 1 Minute
+            simulated_hour = simulated_time.hour
         else:
-            print("Failed to publish message")
+            simulated_hour = datetime.now().hour
 
-        time.sleep(5)  # Interval between readings
+        for location in mcfit_locations:
+            abbreviation = location["abbreviation"]
+            occupancy = get_time_based_occupancy(simulated_hour)
 
-# Run Simulation
+            for sensor_type, sensors in location["sensors"].items():
+                for sensor_id in sensors:
+                    # Sensordaten basierend auf dem Typ generieren
+                    value = None
+                    if sensor_type == "occupancy":
+                        value = occupancy
+                    elif sensor_type == "temperature":
+                        value = round(random.uniform(18, 30), 1)
+                    elif sensor_type == "humidity":
+                        value = round(random.uniform(30, 70), 1)
+                    elif sensor_type == "co2_level":
+                        value = get_co2_level(occupancy)
+                    elif sensor_type == "no2_level":
+                        value = get_no2_level(occupancy)
+                    elif sensor_type == "noise_level":
+                        value = round(random.uniform(40, 90), 1)
+                    elif sensor_type == "energy_usage":
+                        value = round(random.uniform(500, 1500), 2)
+
+                    # Daten für jeden Sensor veröffentlichen
+                    if value is not None:
+                        topic = f"/smartgym/{abbreviation}/{sensor_type}"
+                        payload = {
+                            "timestamp": simulated_time.isoformat(),
+                            "location": location["name"],
+                            "coordinates": location["coordinates"],
+                            "sensor_id": sensor_id,  # Sensor-ID hinzufügen
+                            "value": value,
+                        }
+                        result = client.publish(topic, json.dumps(payload))
+                        if result.rc == 0:
+                            print(f"Published to {topic}: {payload}")
+                        else:
+                            print(f"Failed to publish to {topic}")
+
+        time.sleep(10 if TIME_ACCELERATED_MODE else 20)
+
+# Simulation starten
 try:
     simulate_data()
 except KeyboardInterrupt:
-    print("Simulation stopped.")
+    print("Simulation gestoppt.")
 finally:
     client.loop_stop()
     client.disconnect()

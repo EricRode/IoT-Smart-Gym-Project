@@ -52,6 +52,8 @@ services:
     build:
       context: ./node-red
     container_name: node_red
+    env_file:
+      - .env  # Correct path to the .env file
     ports:
       - "1880:1880"
     volumes:
