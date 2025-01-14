@@ -110,24 +110,28 @@ TIME_ACCELERATED_MODE = True  # Set to False for real-time simulation
 SCALING_FACTOR = 2  # Scale occupancy to higher values
 
 def get_time_based_occupancy(simulated_hour):
+    load_dotenv()
+    max_occupancy = int(os.getenv("MAXIMUM_OCCUPANCY", 100))  # Default to 100 if not set
+
     """Calculate occupancy based on the simulated time."""
     base_occupancy = 0
-    fluctuation = random.randint(-5, 5)  # Slight fluctuation around the base
+    fluctuation = random.randint(-20, 20)  # Slight fluctuation around the base
 
     if 6 <= simulated_hour < 9:  # Morning rush
         base_occupancy = 50
     elif 9 <= simulated_hour < 12:  # Late morning
-        base_occupancy = 25
+        base_occupancy = 20
     elif 12 <= simulated_hour < 15:  # Early afternoon
-        base_occupancy = 20
+        base_occupancy = 30
     elif 15 <= simulated_hour < 20:  # Evening rush
-        base_occupancy = 50
+        base_occupancy = 95
     elif 20 <= simulated_hour < 24:  # Late evening
-        base_occupancy = 20
+        base_occupancy = 70
     else:  # Night (00:00 - 06:00)
         base_occupancy = 5
 
-    return max(0, (base_occupancy + fluctuation) * SCALING_FACTOR)
+    # Cap the occupancy using the maximum value from the environment
+    return min(max_occupancy, max(0, (base_occupancy + fluctuation)))
 
 def get_co2_level(occupancy):
     """Simulate CO2 level based on occupancy."""
