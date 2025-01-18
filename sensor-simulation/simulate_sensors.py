@@ -33,7 +33,7 @@ mcfit_locations = [
             "no2_level": 1,
             "noise_level": 2,
             "utilization": 1,
-            "pm2.5": 1,
+            "pm2_5": 1,
             "pm10": 1,
             "co_level": 1,
         }
@@ -47,7 +47,7 @@ mcfit_locations = [
             "no2_level": 2,
             "noise_level": 3,
             "utilization": 1,
-            "pm2.5": 1,
+            "pm2_5": 1,
             "pm10": 1,
             "co_level": 1,
         }
@@ -61,7 +61,7 @@ mcfit_locations = [
             "no2_level": 1,
             "noise_level": 1,
             "utilization": 1,
-            "pm2.5": 1,
+            "pm2_5": 1,
             "pm10": 1,
             "co_level": 1,
         }
@@ -75,7 +75,7 @@ mcfit_locations = [
             "no2_level": 2,
             "noise_level": 2,
             "utilization": 1,
-            "pm2.5": 1,
+            "pm2_5": 1,
             "pm10": 1,
             "co_level": 1,
         }
@@ -89,7 +89,7 @@ mcfit_locations = [
             "no2_level": 1,
             "noise_level": 3,
             "utilization": 1,
-            "pm2.5": 1,
+            "pm2_5": 1,
             "pm10": 1,
             "co_level": 1,
         }
@@ -169,7 +169,7 @@ def get_pm10_level(occupancy):
 def get_people_distribution(total_occupancy):
     """
     Reads area capacities from the .env file and distributes the total occupancy
-    into specified areas based on their capacities.
+    into specified areas based on their capacities without exceeding the max values.
 
     Args:
         total_occupancy (int): The total number of people.
@@ -183,10 +183,10 @@ def get_people_distribution(total_occupancy):
     try:
         # Parse area capacities directly from the .env file
         area_capacities = {
-            "strength_training": int(os.getenv("MAX_STRENGTH", 10)),
-            "aerobic": int(os.getenv("MAX_AEROBIC", 10)),
-            "functional": int(os.getenv("MAX_FUNCTIONAL", 10)),
-            "no_equipment": int(os.getenv("MAX_NO_EQUIPMENT", 10)),
+            "strength_training": int(os.getenv("MAX_STRENGTH", 40)),
+            "aerobic": int(os.getenv("MAX_AEROBIC", 20)),
+            "functional": int(os.getenv("MAX_FUNCTIONAL", 20)),
+            "no_equipment": int(os.getenv("MAX_NO_EQUIPMENT", 20)),
         }
     except ValueError as e:
         raise ValueError(f"Invalid values in the .env file: {e}")
@@ -201,15 +201,22 @@ def get_people_distribution(total_occupancy):
 
     # Proportional distribution
     for area, capacity in area_capacities.items():
-        distribution[area] = int((capacity / total_capacity) * total_occupancy)
+        distribution[area] = min(capacity, int((capacity / total_capacity) * total_occupancy))
 
     # Handle remaining individuals due to rounding
     allocated = sum(distribution.values())
     remaining = total_occupancy - allocated
+
+    # Distribute remaining individuals while respecting maximum capacities
     areas = list(area_capacities.keys())
-    for _ in range(remaining):
-        area = random.choice(areas)
-        distribution[area] += 1
+    while remaining > 0:
+        random.shuffle(areas)
+        for area in areas:
+            if remaining <= 0:
+                break
+            if distribution[area] < area_capacities[area]:
+                distribution[area] += 1
+                remaining -= 1
 
     return distribution
 
@@ -243,7 +250,7 @@ def simulate_data():
                         value = get_no2_level(occupancy)
                     elif sensor_type == "noise_level":
                         value = round(random.uniform(40, 90), 1)
-                    elif sensor_type == "pm2.5":
+                    elif sensor_type == "pm2_5":
                         value = get_pm25_level(occupancy)
                     elif sensor_type == "pm10":
                         value = get_pm10_level(occupancy)
