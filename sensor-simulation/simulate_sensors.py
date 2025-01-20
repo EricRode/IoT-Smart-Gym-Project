@@ -23,7 +23,7 @@ client.connect(broker, port, keepalive=60)
 client.loop_start()
 
 # Gym locations with the number of sensors
-mcfit_locations = [
+gym_locations = [
     {
         "name": "Olympus_Gym",
         "sensor_counts": {
@@ -97,7 +97,7 @@ mcfit_locations = [
 ]
 
 # Generate unique IDs for all sensors
-for location in mcfit_locations:
+for location in gym_locations:
     name = location["name"]
     location["sensors"] = {}
     for sensor_type, count in location["sensor_counts"].items():
@@ -107,7 +107,6 @@ for location in mcfit_locations:
 
 # Accelerated mode for simulation
 TIME_ACCELERATED_MODE = True  # Set to False for real-time simulation
-SCALING_FACTOR = 2  # Scale occupancy to higher values
 
 def get_time_based_occupancy(simulated_hour):
     load_dotenv()
@@ -140,7 +139,7 @@ def get_co2_level(occupancy):
 
 def get_co_level(occupancy):
     base_co = 0.1  # Approximate outdoor CO concentration in ppm
-    co_emission_per_person = random.uniform(0.00001, 0.00005)  # Randomized CO emission rate per person in ppm
+    co_emission_per_person = random.uniform(0.00001, 0.00005)
 
     # Total CO emission from all occupants
     total_co_emission = occupancy * co_emission_per_person
@@ -167,16 +166,6 @@ def get_pm10_level(occupancy):
 
 
 def get_people_distribution(total_occupancy):
-    """
-    Reads area capacities from the .env file and distributes the total occupancy
-    into specified areas based on their capacities without exceeding the max values.
-
-    Args:
-        total_occupancy (int): The total number of people.
-
-    Returns:
-        dict: A dictionary with area names as keys and the number of people distributed as values.
-    """
     # Load the .env file
     load_dotenv()
 
@@ -232,7 +221,7 @@ def simulate_data():
         else:
             simulated_hour = datetime.now().hour
 
-        for location in mcfit_locations:
+        for location in gym_locations:
             name = location["name"]
             occupancy = get_time_based_occupancy(simulated_hour)
 

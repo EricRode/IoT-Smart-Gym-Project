@@ -53,7 +53,7 @@ services:
       context: ./node-red
     container_name: node_red
     env_file:
-      - .env  # Correct path to the .env file
+      - .env
     ports:
       - "1880:1880"
     volumes:
@@ -63,6 +63,7 @@ services:
     networks:
       smartgym-network:
         ipv4_address: 172.30.0.110
+    restart: always
 
   grafana:
     image: grafana/grafana:latest
