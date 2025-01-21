@@ -212,11 +212,11 @@
         "id": "6412f99e6babfe83",
         "type": "telegram sender",
         "z": "08a91f436021d7da",
-        "name": "Send to admin group",
+        "name": "Send to Telegram",
         "bot": "de4cdb1d8fe2dfb9",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 820,
+        "x": 810,
         "y": 160,
         "wires": [
             []
