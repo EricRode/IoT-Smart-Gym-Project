@@ -181,16 +181,26 @@ def get_people_distribution(total_occupancy):
         raise ValueError(f"Invalid values in the .env file: {e}")
 
     # Ensure total capacity is valid
-    total_capacity = sum(area_capacities.values())
+    total_capacity = int(os.getenv("MAXIMUM_OCCUPANCY", 100))
     if total_capacity == 0:
         raise ValueError("Total capacity in the .env file must be greater than 0.")
 
     # Initialize the distribution dictionary
     distribution = {area: 0 for area in area_capacities}
 
-    # Proportional distribution
+    # Initial random distribution proportional to capacities
+    proportions = {area: (capacity / total_capacity) for area, capacity in area_capacities.items()}
+    random_factors = {area: random.uniform(0.8, 1.2) for area in area_capacities}
+    scaled_proportions = {
+        area: proportions[area] * random_factors[area] for area in area_capacities
+    }
+    total_scaled = sum(scaled_proportions.values())
+    adjusted_proportions = {
+        area: (scaled_proportions[area] / total_scaled) for area in area_capacities
+    }
+
     for area, capacity in area_capacities.items():
-        distribution[area] = min(capacity, int((capacity / total_capacity) * total_occupancy))
+        distribution[area] = min(capacity, int(adjusted_proportions[area] * total_occupancy))
 
     # Handle remaining individuals due to rounding
     allocated = sum(distribution.values())
@@ -200,14 +210,19 @@ def get_people_distribution(total_occupancy):
     areas = list(area_capacities.keys())
     while remaining > 0:
         random.shuffle(areas)
+        all_full = True
         for area in areas:
             if remaining <= 0:
                 break
             if distribution[area] < area_capacities[area]:
                 distribution[area] += 1
                 remaining -= 1
+                all_full = False
+        if all_full:
+            break
 
     return distribution
+
 
 def simulate_data():
     """Main loop to simulate and publish sensor data."""
