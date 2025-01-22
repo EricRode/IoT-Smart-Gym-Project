@@ -4,7 +4,8 @@
 ## Setup
 1. Install Docker and Docker Compose.
 2. Clone this repository.
-3. Run `docker-compose up` to start all services.
+3. Run `docker-compose build`
+4. Run `docker-compose up` to start all services.
 
 ## Components
 - MQTT: Message broker for sensor communication.
