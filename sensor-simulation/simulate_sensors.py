@@ -105,9 +105,6 @@ for location in gym_locations:
             f"sensor_{name}_{sensor_type}_{i+1}" for i in range(count)
         ]
 
-# Accelerated mode for simulation
-TIME_ACCELERATED_MODE = True  # Set to False for real-time simulation
-
 def get_time_based_occupancy(simulated_hour):
     load_dotenv()
     max_occupancy = int(os.getenv("MAXIMUM_OCCUPANCY", 100))  # Default to 100 if not set
@@ -229,12 +226,8 @@ def simulate_data():
     simulated_time = datetime.now() 
 
     while True:
-        if TIME_ACCELERATED_MODE:
-            # 1 second of real time = 1 minute of simulated time
-            simulated_time += timedelta(seconds=1)
-            simulated_hour = simulated_time.hour
-        else:
-            simulated_hour = datetime.now().hour
+       
+        simulated_hour = datetime.now().hour
 
         for location in gym_locations:
             name = location["name"]
@@ -294,7 +287,7 @@ def simulate_data():
                             print(f"Failed to publish to {topic}")
 
         # Sleep before next iteration
-        time.sleep(10 if TIME_ACCELERATED_MODE else 20)
+        time.sleep(10)
 
 # Start simulation
 try:
