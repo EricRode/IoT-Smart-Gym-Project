@@ -6,8 +6,7 @@ services:
     restart: always
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: uMq4a5rC5cAhVmHjKssaxfTz4A_8z2vadtm2MktIdcJ90o-VnO9O_VHj_8OFCUUfSwYQqeWaPdiuGsuDpufngQ==
-      DOCKER_INFLUXDB_INIT_ORG: se4iot
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
       DOCKER_INFLUXDB_INIT_BUCKET: smartgym
       DOCKER_INFLUXDB_INIT_USERNAME: smartgym
       DOCKER_INFLUXDB_INIT_PASSWORD: smartgym123
