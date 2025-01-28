@@ -5,12 +5,12 @@ services:
     container_name: influxdb
     restart: always
     environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: uMq4a5rC5cAhVmHjKssaxfTz4A_8z2vadtm2MktIdcJ90o-VnO9O_VHj_8OFCUUfSwYQqeWaPdiuGsuDpufngQ==
-      DOCKER_INFLUXDB_INIT_ORG: se4iot
-      DOCKER_INFLUXDB_INIT_BUCKET: smartgym
-      DOCKER_INFLUXDB_INIT_USERNAME: smartgym
-      DOCKER_INFLUXDB_INIT_PASSWORD: smartgym123
+      DOCKER_INFLUXDB_INIT_MODE: ${INFLUXDB_INIT_MODE}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_INIT_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_INIT_BUCKET}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_INIT_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_INIT_PASSWORD}
     ports:
       - "8086:8086"
     volumes:
@@ -22,7 +22,7 @@ services:
 
   mqtt:
     image: eclipse-mosquitto:latest
-    container_name: mqtt_broker
+    container_name: ${MQTT_BROKER}
     ports:
       - "1883:1883"
     volumes:
@@ -38,10 +38,8 @@ services:
     build:
       context: ./sensor-simulation
     container_name: sensor_simulation
-    environment:
-      - MQTT_BROKER=mqtt_broker
-      - MQTT_USERNAME=smart-gym
-      - MQTT_PASSWORD=smartgym#2024
+    env_file:
+      - .env
     depends_on:
       - mqtt
     networks:
@@ -71,10 +69,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_DEFAULT_THEME=light
-      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      - GF_USERS_DEFAULT_THEME=${GF_USERS_DEFAULT_THEME}
+      - GF_PATHS_PROVISIONING=${GF_PATHS_PROVISIONING}
     volumes:
       - ./grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning

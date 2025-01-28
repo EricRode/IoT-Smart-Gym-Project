@@ -8,12 +8,10 @@ from dotenv import load_dotenv
 
 
 # MQTT Configuration
+load_dotenv()
 broker = os.getenv("MQTT_BROKER", "mqtt_broker")
 port = 1883
-username = os.getenv("MQTT_USERNAME", "smart-gym")
-password = os.getenv("MQTT_PASSWORD", "smartgym#2024")
 client = mqtt.Client()
-client.username_pw_set(username, password)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT Broker" if rc == 0 else f"Failed to connect, code {rc}")
@@ -106,7 +104,6 @@ for location in gym_locations:
         ]
 
 def get_time_based_occupancy(simulated_hour):
-    load_dotenv()
     max_occupancy = int(os.getenv("MAXIMUM_OCCUPANCY", 100))  # Default to 100 if not set
 
     """Calculate occupancy based on the simulated time."""
